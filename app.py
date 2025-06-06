@@ -25,7 +25,26 @@ logger = logging.getLogger(__name__) # Use this logger for application-specific 
                                      # Flask's app.logger can also be used
 
 app = Flask(__name__)
-CORS(app) # Allow cross-origin requests (for development)
+
+# CORS Configuration:
+# This backend API is intended to be hosted at a URL like https://dash-backend-1.onrender.com.
+# For production, it's crucial to specify which frontend origins are allowed to access this API.
+# We'll use an environment variable `ALLOWED_CORS_ORIGINS` for this.
+# This variable should contain a comma-separated list of allowed frontend URLs.
+# Example: `ALLOWED_CORS_ORIGINS="https://your-frontend.onrender.com,https://another-frontend.com"`
+
+allowed_origins_str = os.environ.get("ALLOWED_CORS_ORIGINS")
+if allowed_origins_str:
+    origins = [origin.strip() for origin in allowed_origins_str.split(',')]
+    # Ensure common methods are allowed. Add others if needed.
+    CORS(app, origins=origins, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    logger.info(f"CORS configured for specific origins: {origins}")
+else:
+    # Fallback for local development if ALLOWED_CORS_ORIGINS is not set.
+    CORS(app) # Allows all origins - convenient for development but NOT secure for production.
+    logger.warning("CORS is configured to allow all origins. "
+                   "For production deployment (e.g., at https://dash-backend-1.onrender.com), "
+                   "set the ALLOWED_CORS_ORIGINS environment variable in your server environment to restrict access to your frontend URL(s).")
 
 # Load the expected API key from environment variable AT STARTUP
 EXPECTED_API_KEY = os.environ.get("WATER_METER_API_KEY")
