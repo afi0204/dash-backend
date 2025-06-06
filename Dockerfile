@@ -1,5 +1,5 @@
 # water-meter-api/Dockerfile
-FROM python:3.10-slim # Or your preferred Python version
+FROM python:3.10-slim # THIS IS LINE 2 (or Line 1 if no comment above)
 
 WORKDIR /app
 
