@@ -36,4 +36,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:$PORT", "app:app"]
+# Use the shell form of CMD to allow $PORT environment variable expansion
+CMD gunicorn --workers 2 --bind "0.0.0.0:$PORT" app:app
