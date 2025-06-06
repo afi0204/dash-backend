@@ -1,22 +1,28 @@
-import os
-
+# db_config.py
 DB_CONFIG = {
-    'driver': '{ODBC Driver 17 for SQL Server}',
-    'server': os.getenv('DB_SERVER', '196.190.251.194'),  # default to correct IP if env not set
-    'database': os.getenv('DB_NAME', 'WaterMeter2'),
-    'uid': os.getenv('DB_USER', 'sa'),
-    'pwd': os.getenv('DB_PASS', 'DAFTech@2024'),
+    'driver': 'ODBC Driver 17 for SQL Server', # Or whatever correct driver name you're using
+    'server': '196.190.251.194,1433', # <-- Add the port here
+    'database': 'WaterMeter2',
+    'uid': 'sa',
+    'pwd': 'YOUR_CORRECT_SA_PASSWORD', # e.g., DAFTech@2024
     'encrypt': 'yes',
-    'trust_server_certificate': 'yes',
+    'trust_server_certificate': 'yes'
 }
 
 def get_db_connection_string():
-    return (
-        f"DRIVER={DB_CONFIG['driver']};"
-        f"SERVER={DB_CONFIG['server']};"
-        f"DATABASE={DB_CONFIG['database']};"
-        f"UID={DB_CONFIG['uid']};"
-        f"PWD={DB_CONFIG['pwd']};"
-        f"Encrypt={DB_CONFIG['encrypt']};"
-        f"TrustServerCertificate={DB_CONFIG['trust_server_certificate']};"
-    )
+    conn_str_parts = [
+        f"DRIVER={DB_CONFIG['driver']}",
+        f"SERVER={DB_CONFIG['server']}", # Server now includes port
+        f"DATABASE={DB_CONFIG['database']}",
+        f"UID={DB_CONFIG['uid']}",
+        f"PWD={DB_CONFIG['pwd']}",
+    ]
+    if DB_CONFIG.get('encrypt', 'yes').lower() == 'yes': # Default to yes if not specified or invalid
+        conn_str_parts.append("Encrypt=yes")
+    if DB_CONFIG.get('trust_server_certificate', 'yes').lower() == 'yes': # Default to yes
+        conn_str_parts.append("TrustServerCertificate=yes")
+    
+    # Optional: Add connection timeout
+    conn_str_parts.append("Timeout=30") # Example: 30 second timeout
+
+    return ";".join(conn_str_parts) + ";" # Ensure trailing semicolon for some drivers
