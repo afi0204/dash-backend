@@ -16,7 +16,7 @@ from db_config import get_db_connection_string
 load_dotenv() 
 
 # --- Setup Logging ---
-# Basic configuration (logs to console by default with Flask)
+# Basic configuration (logs to console by default with Flask) 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(name)s %(module)s %(funcName)s: %(message)s')
 
@@ -24,30 +24,27 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__) # Use this logger for application-specific logs
                                      # Flask's app.logger can also be used
 
-# Load API_KEY from environment variable for better security
-# Set this environment variable where your app runs
-API_KEY = os.environ.get("WATER_METER_API_KEY")
-if not API_KEY: # Check if the environment variable was successfully loaded
-    logger.critical("CRITICAL: WATER_METER_API_KEY environment variable not set!")
-    # For a production app, you might want to exit or raise an exception here
-    # For now, we'll let it proceed, but API calls requiring a key will fail if it's not set.
-    # Consider setting a default or raising an error:
-    raise ValueError("CRITICAL: WATER_METER_API_KEY environment variable not set!") # Uncommented to enforce key presence
+app = Flask(__name__)
+CORS(app) # Allow cross-origin requests (for development)
 
+# Load the expected API key from environment variable AT STARTUP
+EXPECTED_API_KEY = os.environ.get("WATER_METER_API_KEY")
+if not EXPECTED_API_KEY:
+    # This will stop the app from starting if the key isn't set, which is good.
+    raise ValueError("CRITICAL: WATER_METER_API_KEY environment variable not set in the server environment!")
+
+else:
+    app.logger.info("WATER_METER_API_KEY loaded successfully.")
 # Using Flask's built-in app.logger is often convenient as it's already configured.
 # You can also use logging.getLogger(__name__) if you prefer more separation.
 # For this example, we'll enhance Flask's default logger.
 
 # Optional: Configure logging to a file with rotation
-# file_handler = RotatingFileHandler('water_meter_api.log', maxBytes=102400, backupCount=10) # 100KB per file
-# file_handler.setFormatter(logging.Formatter(
-#     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-# ))
-# file_handler.setLevel(logging.INFO)
-
-app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests (for development)
-
+file_handler = RotatingFileHandler('water_meter_api.log', maxBytes=102400, backupCount=10) # 100KB per file
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+file_handler.setLevel(logging.INFO)
 # --- Database Helper ---
 def get_db_cursor():
     conn_str = get_db_connection_string()
@@ -55,22 +52,25 @@ def get_db_cursor():
     return conn, conn.cursor()
 
 # Add file handler to Flask's logger if configured
-# if 'file_handler' in locals():
-#     app.logger.addHandler(file_handler)
+if 'file_handler' in locals():
+    app.logger.addHandler(file_handler)
 # Ensure Flask's logger level is set (if you use app.logger extensively)
-# logger.setLevel(logging.INFO) # If using the custom logger instance primarily
+logger.setLevel(logging.INFO) # If using the custom logger instance primarily
 
 # --- API Key Decorator ---
 def require_api_key(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if request.headers.get('X-API-KEY') == API_KEY:
-            return f(*args, **kwargs)
-        else:
-            logger.warning("Unauthorized API access attempt.") # Use custom logger or app.logger
-            return jsonify({"message": "ERROR: Unauthorized"}), 401
-    return decorated_function
-
+    def decorated(*args, **kwargs):
+        # Check for API key in headers
+        submitted_api_key = request.headers.get("X-API-Key") 
+        if not submitted_api_key or submitted_api_key != EXPECTED_API_KEY: 
+            app.logger.warning(f"Unauthorized API access attempt. Submitted key: {submitted_api_key}")
+            return jsonify({"error": "Unauthorized: Invalid or missing API Key"}), 401 
+        
+        # If authorized, proceed with the function
+        app.logger.info("Data submission authorized and processing.")
+        return f(*args, **kwargs) 
+    return decorated
 # --- SMS Parsing Logic ---
 def parse_sms_data(sms_string):
     """
