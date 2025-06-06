@@ -7,16 +7,19 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         gnupg \
+        apt-transport-https \ # Often useful for https repositories
         unixodbc \
         unixodbc-dev \
         lsb-release \
     && \
-    echo "Attempting to add Microsoft GPG key..." && \
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    echo "Downloading Microsoft GPG key..." && \
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
     && \
-    echo "Attempting to add Microsoft APT repository for Debian release $(lsb_release -rs)..." && \
-    # Use lsb_release -rs to get the release number (e.g., 12)
-    curl -fsSL https://packages.microsoft.com/config/debian/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    chmod go+r /usr/share/keyrings/microsoft-prod.gpg \ # Ensure readability
+    && \
+    echo "Adding Microsoft APT repository for Debian release $(lsb_release -rs)..." && \
+    # Reference the GPG key in the source list file
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/$(lsb_release -rs)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/mssql-release.list \
     && \
     echo "Running apt-get update after adding MS repo..." && \
     apt-get update \
