@@ -4,7 +4,7 @@ DB_CONFIG = {
     'server': '196.190.251.194,1433', # <-- Add the port here
     'database': 'WaterMeter2',
     'uid': 'sa',
-    'pwd': 'YOUR_CORRECT_SA_PASSWORD', # e.g., DAFTech@2024
+    'pwd': 'DAFTech@2024', 
     'encrypt': 'yes',
     'trust_server_certificate': 'yes'
 }
